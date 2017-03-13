@@ -4,7 +4,7 @@
  * Description: Allows you to apply full site layout templates to pages on your website using Elementor.
  * Plugin URI: https://dtbaker.net/labs/elementor-full-page-site-builder/
  * Author: dtbaker
- * Version: 1.0.6
+ * Version: 1.0.11
  * Author URI: https://dtbaker.net/
  * Requires at least:   4.4
  * Tested up to:        4.7.2
@@ -32,8 +32,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  Constants:
 */
 
+// dev stuff by dtbaker:
+//set_time_limit(2);
+
 /* Set plugin version constant. */
-define( 'DTBAKER_ELEMENTOR_VERSION', '1.0.9' );
+define( 'DTBAKER_ELEMENTOR_VERSION', '1.0.11' );
+
+/* Debug output control. */
+define( 'DTBAKER_ELEMENTOR_DEBUG_OUTPUT', false );
 
 /* Set constant path to the plugin directory. */
 define( 'DTBAKER_ELEMENTOR_PATH', trailingslashit( plugin_dir_path( __FILE__ ) ) );
@@ -83,7 +89,7 @@ function dtbaker_elementor_load_plugin_textdomain() {
  */
 if( ! function_exists( 'dtbaker_elementor_fail_php_version' ) ) {
 	function dtbaker_elementor_fail_php_version() {
-		$message      = esc_html__( 'The dtbaker Elementor plugin requires PHP version 5.4+, plugin is currently NOT ACTIVE.', 'stylepress' );
+		$message      = esc_html__( 'The StylePress for Elementor plugin requires PHP version 5.4+, plugin is currently NOT ACTIVE.', 'stylepress' );
 		$html_message = sprintf( '<div class="error">%s</div>', wpautop( $message ) );
 		echo wp_kses_post( $html_message );
 	}
