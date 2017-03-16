@@ -60,6 +60,15 @@ class DtbakerElementorManager {
 	public $overwrite_theme_output = true;
 
 	/**
+	 * Flag to let us know that theme css is removed.
+	 *
+	 * @since 1.0.11
+	 *
+	 * @var bool
+	 */
+	public $removing_theme_css = false;
+
+	/**
 	 * Initializes the plugin and sets all required filters.
 	 *
 	 * @since 1.0.0
@@ -74,9 +83,9 @@ class DtbakerElementorManager {
 		add_action( 'wp_enqueue_scripts', array( $this, 'frontend_css' ) );
 		add_action( 'elementor/init', array( $this, 'elementor_init_complete' ) );
 		add_action( 'elementor/widgets/widgets_registered', array( $this, 'elementor_add_new_widgets' ) );
-		add_action( 'elementor/editor/before_enqueue_scripts', array( $this, 'editor_scripts' ) );
+		add_action( 'elementor/editor/before_enqueue_scripts', array( $this, 'editor_scripts' ), 99999 );
 		add_action( 'wp_print_footer_scripts', array( $this, 'wp_print_footer_scripts' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'theme_override_styles' ), 999 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'theme_override_styles' ), 99999 );
 		add_filter( 'tt_font_get_settings_page_tabs', array( $this, 'tt_font_get_settings_page_tabs' ), 101 );
 		add_filter( 'tt_font_get_option_parameters', array( $this, 'tt_font_get_option_parameters' ), 10 );
 		add_action( 'elementor/frontend/element/before_render', array( $this, 'section_before_render' ), 10 );
@@ -500,6 +509,7 @@ class DtbakerElementorManager {
 			add_action( 'admin_action_dtbaker_elementor_save', array( $this, 'dtbaker_elementor_save' ) );
 			add_action( 'admin_action_stylepress_export', array( $this, 'stylepress_export' ) );
 			add_action( 'admin_action_stylepress_download', array( $this, 'stylepress_download' ) );
+			add_action( 'admin_action_stylepress_clone', array( $this, 'stylepress_clone' ) );
 		}
 
 	}
@@ -552,13 +562,10 @@ class DtbakerElementorManager {
 	public function admin_page_assets() {
 		wp_enqueue_style(
 			'fontawesome',
-			'//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css'
+			'https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css'
 		);
-		/*wp_enqueue_script(
-			'stripe-payments',
-			'https://js.stripe.com/v2/'
-		);*/
-		wp_enqueue_script( 'jquery-ui-dialog' ); // jquery and jquery-ui should be dependencies, didn't check though...
+
+		wp_enqueue_script( 'jquery-ui-dialog' );
 		wp_enqueue_style( 'wp-jquery-ui-dialog' );
 
 		wp_register_script( 'stylepress-payments', DTBAKER_ELEMENTOR_URI . 'assets/js/payment.js', false, DTBAKER_ELEMENTOR_VERSION, true );
@@ -570,8 +577,8 @@ class DtbakerElementorManager {
 		wp_enqueue_script( 'stylepress-payments' );
 
 		wp_enqueue_script( 'stylepress-slider', DTBAKER_ELEMENTOR_URI . 'assets/js/omni-slider.js', array('jquery'), DTBAKER_ELEMENTOR_VERSION, true );
-//		wp_enqueue_script( 'stylepress-rangeslider', DTBAKER_ELEMENTOR_URI . 'assets/rangeslider.js/rangeslider.min.js', array('jquery'), DTBAKER_ELEMENTOR_VERSION, true );
-//		wp_enqueue_style( 'stylepress-rangeslider-style', DTBAKER_ELEMENTOR_URI . 'assets/rangeslider.js/rangeslider.css', false, DTBAKER_ELEMENTOR_VERSION, true );
+
+        require_once DTBAKER_ELEMENTOR_PATH . 'admin/_help_text.php';
 
 	}
 
@@ -662,7 +669,7 @@ class DtbakerElementorManager {
 	 * @since 1.0.0
 	 */
 	public function editor_scripts() {
-		wp_enqueue_script( 'dtbaker-elementor-editor', DTBAKER_ELEMENTOR_URI . 'assets/js/editor.js', array( 'elementor-editor' ), DTBAKER_ELEMENTOR_VERSION, true );
+		wp_enqueue_script( 'dtbaker-elementor-editor', DTBAKER_ELEMENTOR_URI . 'assets/js/editor.js', false, DTBAKER_ELEMENTOR_VERSION, true );
 	}
 
 	public function elementor_ref(){
@@ -702,7 +709,7 @@ class DtbakerElementorManager {
 					// todo: only for ones that are public queriable.
 					add_meta_box(
 						'dtbaker_style_metabox',
-						__( 'Style', 'stylepress' ),
+						__( 'StylePress', 'stylepress' ),
 						array( $this, 'meta_box_display' ),
 						$post_type,
 						'side',
@@ -824,7 +831,7 @@ class DtbakerElementorManager {
             $return[$style_id] = $style_name;
             if(isset($children[$style_id])){
                 foreach($children[$style_id] as $child_style_id => $child_name){
-	                $return[$child_style_id] = ' - ' . $child_name;
+	                $return[$child_style_id] = '&nbsp; &#8627; ' . $child_name;
                 }
             }
         }
@@ -875,7 +882,7 @@ class DtbakerElementorManager {
 //			$return[$style_id] = $style_name;
 			if(isset($children[$style_id])){
 				foreach($children[$style_id] as $child_style_id => $child_name){
-					$return[$child_style_id] = $style_name . ' / ' . $child_name;
+					$return[$child_style_id] =  $style_name . ' &#8611; ' . $child_name;
 				}
 			}
 		}
@@ -1032,24 +1039,6 @@ class DtbakerElementorManager {
 		return false;
 	}
 
-	/**
-	 * This lets us query what the currently selected page template is for a particular post ID
-	 * We use the other function to get the defaults for non-page-ID posts (like archive etc..)
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param int $post_id Current post ID we're querying.
-	 *
-	 * @return bool
-	 */
-	public function get_page_current_overwrite( $post_id ) {
-		$current_option = get_post_meta( $post_id, 'dtbaker_style', true );
-		if ( $current_option && ! empty( $current_option['overwrite'] ) ) {
-			return $current_option['overwrite'];
-		}
-
-		return false;
-	}
 
 	/**
 	 * Works out what template is currently selected for the current page/post/archive/search/404 etc.
@@ -1097,9 +1086,9 @@ class DtbakerElementorManager {
 				    }
 				    if ( $home_page_id ) {
 					    $style = (int)$this->get_page_template( $home_page_id );
-					    if( $this->supports( 'theme-inner' ) && ! $this->get_page_current_overwrite( $home_page_id ) ){
-					        $this->overwrite_theme_output = false;
-                        }
+//					    if( $this->supports( 'theme-inner' ) && ! $this->get_page_current_overwrite( $home_page_id ) ){
+//					        $this->overwrite_theme_output = false;
+//                        }
 					    if( -1 === $style ){
 					        return false; // Use theme by default.
                         }else if( $style > 0 ){
@@ -1113,9 +1102,9 @@ class DtbakerElementorManager {
 			    global $post;
 			    if ( $post && $post->ID ) {
                     $style = (int)$this->get_page_template( $post->ID );
-				    if( $this->supports( 'theme-inner' ) && ! $this->get_page_current_overwrite($post->ID ) ){
-					    $this->overwrite_theme_output = false;
-				    }
+//				    if( $this->supports( 'theme-inner' ) && ! $this->get_page_current_overwrite($post->ID ) ){
+//					    $this->overwrite_theme_output = false;
+//				    }
                     if( -1 === $style ){
                         return false; // Use theme by default.
                     }else if( $style > 0 ) {
@@ -1132,27 +1121,12 @@ class DtbakerElementorManager {
         $has_page_type_overwrite_setting_already = false;
         if($page_type){
 	        if( $this->supports( 'theme-inner' ) ){
-		        if(empty($style_settings['overwrite'][$page_type])) {
-			        // this means we're going to use the global settings.
-			        if( empty($style_settings['overwrite']['_global'])){
-				        // default empty global setting means we overwrite inner.
-				        $this->overwrite_theme_output = true;
-			        }else if($style_settings['overwrite']['_global'] == -1){
-				        // use default theme output
-				        $this->overwrite_theme_output = false;
-			        }else{
-				        // use stylepress
-				        $this->overwrite_theme_output = true;
-			        }
-		        }else if($style_settings['overwrite'][$page_type] == -1){
-			        // we're using default theme output for inner bit.
-			        $has_page_type_overwrite_setting_already = true;
-			        $this->overwrite_theme_output = false;
-		        }else{
-			        $has_page_type_overwrite_setting_already = true;
-			        // we're using stylepress output
-			        $this->overwrite_theme_output = true;
-		        }
+
+	            // see if this inner page has the header/footer option selected.
+                if(!empty($style_settings['defaults'][$page_type.'_inner']) && $style_settings['defaults'][$page_type.'_inner'] == -2 ){
+	                $this->overwrite_theme_output = false;
+	                $has_page_type_overwrite_setting_already = true;
+                }
 
 	        }
         }
@@ -1162,16 +1136,10 @@ class DtbakerElementorManager {
 
 		// otherwise check for site wide default:
 		if( !empty($style_settings['defaults']['_global'])){
-            if( ! $has_page_type_overwrite_setting_already ){
-	            if( empty($style_settings['overwrite']['_global'])){
-		            // default empty global setting means we overwrite inner.
-		            $this->overwrite_theme_output = true;
-	            }else if($style_settings['overwrite']['_global'] == -1){
-		            // use default theme output
+            if( ! $has_page_type_overwrite_setting_already && $this->supports( 'theme-inner' ) ){
+                // see if this inner page has the header/footer option selected.
+	            if(!empty($style_settings['defaults']['_global_inner']) && $style_settings['defaults']['_global_inner'] == -2 ){
 		            $this->overwrite_theme_output = false;
-	            }else{
-		            // use stylepress
-		            $this->overwrite_theme_output = true;
 	            }
             }
 			return apply_filters( 'dtbaker_elementor_current_style', $style_settings['defaults']['_global'] );
@@ -1239,16 +1207,16 @@ class DtbakerElementorManager {
 	 */
 	public function get_possible_page_types(){
 	    $defaults = array(
-	        '_global' => 'Global',
-	        'page' => 'Page',
-	        'post' => 'Post',
+	        '_global' => 'Global Defaults',
+	        'archive' => 'Archive/Post Summary',
+	        'post' => 'Post Single',
+	        'page' => 'Page Single',
 //	        'attachment' => 'Attachment',
 	        '404' => '404',
 //	        'product' => 'Product',
 //	        'product_category' => 'Product Category',
 	        'category' => 'Category',
 	        'tag' => 'Tag',
-	        'archive' => 'Archive',
 	        'front_page' => 'Front Page',
 	        'search' => 'Search Results',
         );
@@ -1353,7 +1321,7 @@ class DtbakerElementorManager {
 
 		if ( isset( $_POST['stylepress_settings'] ) && is_array( $_POST['stylepress_settings'] ) ) { // WPCS: sanitization ok. input var okay.
             $settings = $this->get_settings();
-            $allowed = array( 'overwrite' );
+            $allowed = array( 'remove_css' );
             foreach($allowed as $key){
 	            if( !empty($_POST['stylepress_settings'][$key]) ){
 	                $settings[$key] = $_POST['stylepress_settings'][$key];
@@ -1550,6 +1518,36 @@ class DtbakerElementorManager {
 	 * @since 1.0.0
 	 */
 	public function theme_override_styles() {
+
+	    // do we remove theme styles for this current page type?
+		// get all styles data
+		$settings = $this->get_settings();
+		$current_page_type = $this->get_current_page_type();
+
+        if( !empty($settings['remove_css'][$current_page_type]) || !empty($settings['remove_css']['_global']) ) {
+            $this->removing_theme_css = true;
+	        global $wp_styles;
+	        $current_theme = wp_get_theme();
+	        $remove_slugs = array();
+	        $remove_slugs[$current_theme->get_stylesheet()] = true;
+	        $remove_slugs[$current_theme->get_template()] = true;
+
+
+	        // loop over all of the registered scripts
+	        foreach ( $wp_styles->registered as $handle => $data ) {
+		        // remove it
+                if($data && !empty($data->src)) {
+	                foreach ( $remove_slugs as $remove_slug => $tf ) {
+		                if ( strpos( $data->src, '/' . $remove_slug . '/' ) !== false ) {
+			                wp_deregister_style( $handle );
+			                wp_dequeue_style( $handle );
+		                }
+	                }
+                }
+	        }
+	        wp_enqueue_style( 'stylepress-theme-overwrites', DTBAKER_ELEMENTOR_URI . 'assets/css/theme-overwrites.css', false, DTBAKER_ELEMENTOR_VERSION );
+        }
+
 		$theme    = get_option( 'template' );
 		$filename = DTBAKER_ELEMENTOR_PATH . 'themes/' . basename( $theme ) . '.php';
 		if ( file_exists( $filename ) ) {
@@ -1860,6 +1858,80 @@ class DtbakerElementorManager {
     }
 
 
+	public function stylepress_clone() {
+
+		if ( ! isset( $_GET['stylepress_clone'] ) || empty( $_GET['post_id'] ) ) { // WPCS: input var okay.
+			return;
+		}
+
+		// Verify that the nonce is valid.
+		if ( ! wp_verify_nonce( $_GET['stylepress_clone'], 'stylepress_clone' ) ) { // WPCS: sanitization ok. input var okay.
+			return;
+		}
+
+		$post_id = (int)$_GET['post_id'];
+
+		$post = get_post( $post_id );
+
+		/*
+		 * if post data exists, create the post duplicate
+		 */
+		if ($post && 'dtbaker_style' === $post->post_type) {
+
+		    if(!$post->post_parent){
+			    $post->post_parent = $post_id; // we're cloaning the parent one, put it underneath itself.
+            }
+			$args = array(
+				'comment_status' => $post->comment_status,
+				'ping_status'    => $post->ping_status,
+				'post_author'    => $post->post_author,
+				'post_content'   => $post->post_content,
+				'post_excerpt'   => $post->post_excerpt,
+				'post_name'      => $post->post_name,
+				'post_parent'    => $post->post_parent,
+				'post_password'  => $post->post_password,
+				'post_status'    => $post->post_status,
+				'post_title'     => '(clone) ' . $post->post_title,
+				'post_type'      => $post->post_type,
+				'to_ping'        => $post->to_ping,
+				'menu_order'     => $post->menu_order
+			);
+
+			/*
+			 * insert the post by wp_insert_post() function
+			 */
+			$new_post_id = wp_insert_post( $args );
+
+			if($new_post_id) {
+				global $wpdb;
+				/*
+				 * duplicate all post meta just in two SQL queries
+				 */
+				$post_meta_infos = $wpdb->get_results( "SELECT meta_key, meta_value FROM $wpdb->postmeta WHERE post_id=$post_id" );
+				if ( count( $post_meta_infos ) != 0 ) {
+					$sql_query     = "INSERT INTO $wpdb->postmeta (post_id, meta_key, meta_value) ";
+					$sql_query_sel = array();
+					foreach ( $post_meta_infos as $meta_info ) {
+						$meta_key        = $meta_info->meta_key;
+						$meta_value      = esc_sql( $meta_info->meta_value );
+						$sql_query_sel[] = "SELECT $new_post_id, '$meta_key', '$meta_value'";
+					}
+
+					$sql_query .= implode( " UNION ALL ", $sql_query_sel );
+					$wpdb->query( $sql_query );
+				}
+
+				wp_redirect( get_edit_post_link( $new_post_id, 'edit' ) );
+				exit;
+
+			}
+
+
+		}
+        return false;
+
+    }
+
     public function payment_complete(){
 
 	    if(!empty($_POST['payment']['payment_nonce']) && wp_verify_nonce($_POST['payment']['payment_nonce'],'payment_nonce')){
@@ -1879,6 +1951,16 @@ class DtbakerElementorManager {
         }
         wp_send_json_error('Failed to record payment');
 
+    }
+
+    public function debug_message($message){
+
+        if( DTBAKER_ELEMENTOR_DEBUG_OUTPUT && is_user_logged_in() ) {
+            echo '<div class="stylepress-debug">';
+            echo '<span>StylePress:</span> &nbsp; ';
+            echo $message;
+            echo "</div>";
+        }
     }
 
 }

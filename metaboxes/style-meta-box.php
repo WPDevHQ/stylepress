@@ -72,7 +72,7 @@ if( $post->post_parent ){
                 <?php foreach ( $styles as $style ) {
                     ?>
                     <li>
-                        <div class="stylebox" tabindex="0">
+                        <div class="stylebox inner-style" tabindex="0">
                             <?php if ( has_post_thumbnail( $style->ID ) ) { ?>
                                 <a href="<?php echo esc_url( \Elementor\Utils::get_edit_link( $style->ID ) ); ?>" class="thumb">
                                     <?php echo get_the_post_thumbnail( $style->ID, 'full' ); ?>
@@ -89,6 +89,9 @@ if( $post->post_parent ){
 	                            if($settings && ! empty( $settings['defaults'][$post_type] ) && (int) $settings['defaults'][$post_type] === (int) $style->ID){
 		                            $used[$post_type] = $post_type_title;
 	                            }
+	                            if($settings && ! empty( $settings['defaults'][$post_type] ) && (int) $settings['defaults'][$post_type.'_inner'] === (int) $style->ID){
+		                            $used[$post_type.'_inner'] = $post_type_title .' Inner';
+	                            }
                             }
 
                             ?>
@@ -97,18 +100,21 @@ if( $post->post_parent ){
 	                                <?php if ( $used ){ ?>
                                         <i class="fa fa-check"></i> Style Applied To: <?php echo implode(', ',$used); ?>.
 	                                <?php }else{ ?>
-                                        <i class="fa fa-times"></i> Style Not Used. Apply style.
+                                        <i class="fa fa-times"></i> Style Not Used.
                                     <?php } ?>
                                 </a>
                             </div>
 
-                            <h3 class="design-name"><?php echo esc_html( $style->post_title ); ?></h3>
+                            <h3 class="design-name">
+                                <?php if( $post->ID != $style->ID ) { ?>
+                                    <a href="<?php echo esc_url( get_edit_post_link( $style->ID ) ); ?>"><?php echo esc_html( $style->post_title ); ?></a>
+                                <?php }else{ ?>
+                                    <?php echo esc_html( $style->post_title ); ?>
+                                <?php } ?>
+                            </h3>
 
                             <div class="theme-actions">
-                                <?php if( $post->ID != $style->ID ) { ?>
-                                <a class="button customize load-customize hide-if-no-customize" href="<?php echo esc_url( get_edit_post_link( $style->ID ) ); ?>"><?php esc_html_e( 'Settings', 'stylepress' ); ?></a>
-                                <?php } ?>
-<!--                                <a class="button button" href="#" onclick="alert('Coming soon');">--><?php //esc_html_e( 'Copy', 'stylepress' ); ?><!--</a>-->
+                                <a class="button button" href="<?php print wp_nonce_url(admin_url('admin.php?action=stylepress_clone&post_id=' . (int)$style->ID), 'stylepress_clone', 'stylepress_clone');?>"><?php esc_html_e( 'Clone', 'stylepress' ); ?></a>
                                 <a class="button button" href="<?php echo esc_url( get_permalink( $style->ID ) );?>"><?php esc_html_e( 'Preview', 'stylepress' ); ?></a>
                                 <a class="button button-primary customize load-customize hide-if-no-customize" href="<?php echo esc_url( \Elementor\Utils::get_edit_link( $style->ID ) ); ?>"><?php esc_html_e( 'Edit', 'stylepress' ); ?></a>
                             </div>
@@ -139,15 +145,39 @@ if( $post->post_parent ){
                                 <a href="<?php echo esc_url( \Elementor\Utils::get_edit_link( $style->ID ) );?>" class="thumb">
                                     <img src="<?php echo esc_url( DTBAKER_ELEMENTOR_URI . 'assets/img/wp-theme-thumb-logo-sml.jpg' );?>">
                                 </a>
-                            <?php } ?>
+                            <?php }
 
-                            <h3 class="design-name"><?php echo esc_html( $style->post_title ); ?></h3>
+                            $used = array();
+                            foreach($page_types as $post_type => $post_type_title){
+	                            if($settings && ! empty( $settings['defaults'][$post_type] ) && (int) $settings['defaults'][$post_type] === (int) $style->ID){
+		                            $used[$post_type] = $post_type_title;
+	                            }
+	                            if($settings && ! empty( $settings['defaults'][$post_type] ) && (int) $settings['defaults'][$post_type.'_inner'] === (int) $style->ID){
+		                            $used[$post_type.'_inner'] = $post_type_title .' Inner';
+	                            }
+                            }
+
+                            ?>
+                            <div class="theme-usage">
+                                <a href="<?php echo esc_url( admin_url('admin.php?page=dtbaker-stylepress-settings'));?>">
+			                        <?php if ( $used ){ ?>
+                                        <i class="fa fa-check"></i> Style Applied To: <?php echo implode(', ',$used); ?>.
+			                        <?php }else{ ?>
+                                        <i class="fa fa-times"></i> Style Not Used.
+			                        <?php } ?>
+                                </a>
+                            </div>
+
+                            <h3 class="design-name">
+		                        <?php if( $post->ID != $style->ID ) { ?>
+                                    <a href="<?php echo esc_url( get_edit_post_link( $style->ID ) ); ?>"><?php echo esc_html( $style->post_title ); ?></a>
+		                        <?php }else{ ?>
+			                        <?php echo esc_html( $style->post_title ); ?>
+		                        <?php } ?>
+                            </h3>
 
                             <div class="theme-actions">
-                                <?php if( $post->ID != $style->ID ) { ?>
-                                    <a class="button customize load-customize hide-if-no-customize" href="<?php echo esc_url( get_edit_post_link( $style->ID ) ); ?>"><?php esc_html_e( 'Settings', 'stylepress' ); ?></a>
-                                <?php } ?>
-<!--                                <a class="button button" href="#" onclick="alert('Coming soon');">--><?php //esc_html_e( 'Copy', 'stylepress' ); ?><!--</a>-->
+                                <a class="button button" href="<?php print wp_nonce_url(admin_url('admin.php?action=stylepress_clone&post_id=' . (int)$style->ID), 'stylepress_clone', 'stylepress_clone');?>"><?php esc_html_e( 'Clone', 'stylepress' ); ?></a>
                                 <a class="button button-primary customize load-customize hide-if-no-customize" href="<?php echo esc_url( \Elementor\Utils::get_edit_link( $style->ID ) ); ?>"><?php esc_html_e( 'Edit', 'stylepress' ); ?></a>
                             </div>
                         </div>

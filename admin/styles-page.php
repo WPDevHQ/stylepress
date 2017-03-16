@@ -10,40 +10,10 @@ defined( 'DTBAKER_ELEMENTOR_PATH' ) || exit;
 $title = __( 'Full Site Editor', 'stylepress' );
 
 // Help tab: Previewing and Customizing.
-if ( $this->has_permission() ) {
-	$help_customize =
-		'<p>' . __( 'This is help text. I will add some information in here soon.', 'stylepress' ) . '</p>';
+if ( !$this->has_permission() ) {
 
-	get_current_screen()->add_help_tab( array(
-		'id'		=> 'dtbaker-elementor',
-		'title'		=> __( 'Editing a Site Style', 'stylepress' ),
-		'content'	=> $help_customize,
-	) );
-
-	if( isset($_POST['dtbaker_elementor_save']) ) {
-		if (
-			! isset( $_POST['dtbaker_elementor_save_options'] )
-			|| ! wp_verify_nonce( $_POST['dtbaker_elementor_save_options'], 'dtbaker_elementor_save_options' )
-		) {
-
-			print 'Sorry, your nonce did not verify.';
-			exit;
-
-		} else {
-
-
-		}
-	}
-
-
-}else{
     die ('No permissions');
 }
-
-get_current_screen()->set_help_sidebar(
-	'<p><strong>' . __( 'For more information:', 'stylepress' ) . '</strong></p>' .
-	'<p>' . __( '<a href="https://dtbaker.net/labs/elementor-full-page-site-builder/">Read More on dtbaker.net</a>', 'stylepress' ) . '</p>'
-);
 
 
 add_thickbox();
@@ -63,7 +33,6 @@ $downloadable = DtbakerElementorManager::get_instance()->get_downloadable_styles
 
 	<div class="dtbaker-elementor-browser">
 
-        <?php if($designs ){ ?>
 		<div class="wp-clearfix">
 
             <h3 class="stylepress-header">
@@ -82,6 +51,7 @@ $downloadable = DtbakerElementorManager::get_instance()->get_downloadable_styles
                 if(!$designs){
                     ?>
                     <p>None yet! Create your own or install from the list below.</p>
+                    <p>&nbsp;</p>
                     <?php
                 }
 
@@ -131,7 +101,7 @@ $downloadable = DtbakerElementorManager::get_instance()->get_downloadable_styles
                                 <?php if ( $used ){ ?>
                                     <i class="fa fa-check"></i> Style Applied To: <?php echo implode(', ',$used); ?>.
                                 <?php }else{ ?>
-                                    <i class="fa fa-times"></i> Style Not Used. Apply style.
+                                    <i class="fa fa-times"></i> Style Not Used.
                                 <?php } ?>
                             </a>
                         </div>
@@ -147,7 +117,7 @@ $downloadable = DtbakerElementorManager::get_instance()->get_downloadable_styles
                 <?php endforeach; ?>
             </div>
 		</div>
-        <?php } ?>
+
 
         <div class="wp-clearfix">
             <h3 class="stylepress-header">
