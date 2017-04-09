@@ -9,6 +9,9 @@
 
 defined( 'DTBAKER_ELEMENTOR_PATH' ) || exit;
 
+
+
+
 if ( ! function_exists( 'dtbaker_elementor_page_content' ) ) {
 
 	/**
@@ -21,8 +24,14 @@ if ( ! function_exists( 'dtbaker_elementor_page_content' ) ) {
 
 		$current_page_type = DtbakerElementorManager::get_instance()->get_current_page_type();
 
-		if(!empty($GLOBALS['stylepress_rendering_inner'])){
-			\DtbakerElementorManager::get_instance()->debug_message("Nested inner content for ". $current_page_type .". Running do_shortcode( get_the_" . ( $current_page_type == 'archive' ? 'excerpt' : 'content' ) ."() ); ");
+		if(!isset($GLOBALS['stylepress_template_turtles'])){
+			$GLOBALS['stylepress_template_turtles'] = array();
+		}
+
+		\DtbakerElementorManager::get_instance()->debug_message("template-functions.php: Rendering from stylepress/render-inner action hook ");
+
+		if(count($GLOBALS['stylepress_template_turtles'])){
+			\DtbakerElementorManager::get_instance()->debug_message("template-functions.php: Nested inner content for ". $current_page_type .".");
 
 			// save and restore global post entry while we do this.
 			if ( isset( $GLOBALS['post'] ) ) {
@@ -36,18 +45,31 @@ if ( ! function_exists( 'dtbaker_elementor_page_content' ) ) {
 				}
 			}
 			echo '<!-- Start Inner Render Content for ID '.(int)get_the_ID().' --> ';
-			$GLOBALS['twodeep'] = true;
 			// is this page we're trying to edit an elementor page?
 
-			// todo: make these options in the settings array.
-			switch($current_page_type){
-				case 'archive':
-					echo do_shortcode( get_the_excerpt() );
-					break;
-				default:
+			if(!empty($settings['output_type'])){
+				switch($settings['output_type']){
+					case 'full':
+						the_content();
+						break;
+					case 'raw':
+						echo do_shortcode( get_the_content() );
+						break;
+					case 'excerpt':
+						echo do_shortcode( get_the_excerpt() );
+						break;
+				}
+			}else {
+				// todo: make these options in the settings array.
+				switch ( $current_page_type ) {
+					case 'archive':
+						echo do_shortcode( get_the_excerpt() );
+						break;
+					default:
 //					echo do_shortcode( get_the_content() );
-					the_content();
+						the_content();
 //					echo Elementor\Plugin::instance()->frontend->get_builder_content_for_display( get_the_ID() );
+				}
 			}
 
 			// Restore global post
@@ -58,15 +80,13 @@ if ( ! function_exists( 'dtbaker_elementor_page_content' ) ) {
 				unset( $GLOBALS['post'] );
 			}
 
-			$GLOBALS['twodeep'] = false;
 			echo '<!-- End Inner Render Content --> ';
 			return;
 		}
 		echo '<!-- Start StylePress Render --> ';
-		$GLOBALS['stylepress_rendering_inner'] = true;
 
 
-		\DtbakerElementorManager::get_instance()->debug_message("Current page type for inner content style lookup is: $current_page_type ");
+		\DtbakerElementorManager::get_instance()->debug_message("template-functions.php: Current page type for inner content style lookup is: $current_page_type ");
 
 		$style_settings = DtbakerElementorManager::get_instance()->get_settings();
 
@@ -77,7 +97,7 @@ if ( ! function_exists( 'dtbaker_elementor_page_content' ) ) {
 				//
 			}else if($component_template != 'archive_inner'){
 				$component_template = 'archive_inner';
-				\DtbakerElementorManager::get_instance()->debug_message("We're showing blog post output on home page, using inner style $component_template instead");
+				\DtbakerElementorManager::get_instance()->debug_message("template-functions.php: We're showing blog post output on home page, using inner style $component_template instead");
 			}
 		}
 
@@ -90,8 +110,12 @@ if ( ! function_exists( 'dtbaker_elementor_page_content' ) ) {
 
 			$style_id = false;
 			if( $component_template ){
-				// loading this component/
-				if(!empty($style_settings['defaults'][$component_template])){
+				// check if this page has a custom inner content template chosen:
+				$current_inner_style = (int) DtbakerElementorManager::get_instance()->get_page_inner_style($post->ID);
+				$debug_info .= ' inner style '.$current_inner_style;
+				if($current_inner_style !== 0) {
+					$style_id = $current_inner_style;
+				}else if(!empty($style_settings['defaults'][$component_template])){
 					$style_id = (int) $style_settings['defaults'][$component_template];
 					$debug_info .= " with the $component_template style ";
 				}else{
@@ -117,21 +141,19 @@ if ( ! function_exists( 'dtbaker_elementor_page_content' ) ) {
 					$debug_info .= '<a href="'.get_permalink($style_id).'">' . esc_html(get_the_title($style_id)) .'</a>';
 				}
 			}
-			\DtbakerElementorManager::get_instance()->debug_message($debug_info);
+			\DtbakerElementorManager::get_instance()->debug_message('template-functions.php: '.$debug_info);
 
-			if($style_id) {
-				echo Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $style_id );
+			if($style_id > 0) {
+				$GLOBALS['stylepress_template_turtles'][$style_id] = $style_id;
+				echo Elementor\Plugin::instance()->frontend->get_builder_content( $style_id, false );
 			}else{
 				the_content();
 			}
-
-			$GLOBALS['stylepress_post_for_dynamic_fields'] = false;
 
 		endwhile;
 
 		// work out if we have an inner component for this particular post style.
 		echo '<!-- End StylePress Render --> ';
-		$GLOBALS['stylepress_rendering_inner'] = false;
 
 	}
 }

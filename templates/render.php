@@ -20,12 +20,12 @@ defined( 'DTBAKER_ELEMENTOR_PATH' ) || exit;
 <?php
 
 $page_type = DtbakerElementorManager::get_instance()->get_current_page_type();
-DtbakerElementorManager::get_instance()->debug_message("Rendering full page output for page type '$page_type' in render.php using the style: ". (
-        !empty($GLOBALS['our_elementor_template']) ? '<a href="'.get_permalink($GLOBALS['our_elementor_template']).'">' . esc_html(get_the_title($GLOBALS['our_elementor_template'])) .'</a>' : 'NONE'
+DtbakerElementorManager::get_instance()->debug_message("render.php: Rendering full page output for page type '$page_type' in render.php using the style: ". (
+        !empty($GLOBALS['our_elementor_template']) ? '<a href="'.get_permalink($GLOBALS['our_elementor_template']).'">' . esc_html(get_the_title($GLOBALS['our_elementor_template'])) .'</a> ' . $GLOBALS['our_elementor_template'] : 'NONE'
     ).'');
 
 if(DtbakerElementorManager::get_instance()->removing_theme_css) {
-	DtbakerElementorManager::get_instance()->debug_message( "Removing the default theme CSS files" );
+	DtbakerElementorManager::get_instance()->debug_message( "render.php: Removing the default theme CSS files" );
 }
 
 do_action( 'stylepress/before-render' );
@@ -36,7 +36,7 @@ do_action( 'stylepress/before-render' );
 <?php
 if ( ! empty( $GLOBALS['our_elementor_template'] ) ) {
 	$GLOBALS['stylepress_only_render'] = 'all';
-	echo Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $GLOBALS['our_elementor_template'] );
+	echo Elementor\Plugin::instance()->frontend->get_builder_content( $GLOBALS['our_elementor_template'], false );
 } else {
 	echo 'Please select a site style';
 }
