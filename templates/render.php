@@ -34,11 +34,11 @@ do_action( 'stylepress/before-render' );
 ?>
 <!-- stylepress render template begin -->
 <?php
-if ( ! empty( $GLOBALS['our_elementor_template'] ) ) {
+if ( ! empty( $GLOBALS['our_elementor_template'] ) && $GLOBALS['our_elementor_template'] > 0 ) {
 	$GLOBALS['stylepress_only_render'] = 'all';
 	echo Elementor\Plugin::instance()->frontend->get_builder_content( $GLOBALS['our_elementor_template'], false );
 } else {
-	echo 'Please select a site style';
+	echo 'Please select a global site style';
 }
 ?>
 <!-- stylepress render template end -->

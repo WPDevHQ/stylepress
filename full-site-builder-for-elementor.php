@@ -40,7 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'DTBAKER_ELEMENTOR_VERSION', '1.0.15' );
 
 /* Debug output control. */
-define( 'DTBAKER_ELEMENTOR_DEBUG_OUTPUT', false );
+define( 'DTBAKER_ELEMENTOR_DEBUG_OUTPUT', 0 );
 
 /* Set constant path to the plugin directory. */
 define( 'DTBAKER_ELEMENTOR_SLUG', basename( plugin_dir_path( __FILE__ ) ) );
@@ -57,6 +57,11 @@ add_action( 'plugins_loaded', 'dtbaker_elementor_load_plugin_textdomain' );
 if ( ! version_compare( PHP_VERSION, '5.4', '>=' ) ) {
 	add_action( 'admin_notices', 'dtbaker_elementor_fail_php_version' );
 } else {
+
+
+	define('STYLEPRESS_OUTER_USE_THEME', -1);
+	define('STYLEPRESS_INNER_USE_PLAIN', -1);
+	define('STYLEPRESS_INNER_USE_THEME', -2);
 
 
 	/* DtbakerElementorManager Class */
